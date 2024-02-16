@@ -47,7 +47,7 @@ class App extends cutil.mixin(AppBase, dumper) {
 			.option("-v, --verbose", "show verbose info")
 			.action(async (url, {shortid, analytics, filterbots, verbose}) => {
 				app.sub("run", async () => {
-					await app.toShortenUrl({url, shortid, analytics, filterbots});
+					await app.toShortenUrl({url, shortid, analytics, filterbots, verbose});
 				})
 			});
 	}
@@ -63,7 +63,7 @@ class App extends cutil.mixin(AppBase, dumper) {
 			app.prefs.apiKey = opts.setKey;
 		}
 	}
-	async toShortenUrl({url, shortid, analytics, filterbots}) {
+	async toShortenUrl({url, shortid, analytics, filterbots, verbose}) {
 		let app = this;
 		let {client} = app;
 		let {prefs} = app;
@@ -71,7 +71,7 @@ class App extends cutil.mixin(AppBase, dumper) {
 			client.apiKey = prefs.key;
 		}
 		try {
-			let u = await client.toShorten({url, shortid, analytics, filterbots});
+			let u = await client.toShorten({url, shortid, analytics, filterbots, verbose});
 			console.log(u);
 		} catch (e) {
 			console.log(e.message);
