@@ -1,4 +1,4 @@
-import {env} from "node:process";
+import process from "node:process";
 
 import {cutil} from "@ghasemkiani/base";
 import {App as AppBase} from "@ghasemkiani/base-app";
@@ -75,6 +75,7 @@ class App extends cutil.mixin(AppBase, dumper) {
 			console.log(u);
 		} catch (e) {
 			console.log(e.message);
+			process.exit(1);
 		}
 	}
 }
