@@ -43,7 +43,7 @@ class App extends cutil.mixin(AppBase, dumper) {
 			.option("-i, --shortid <shortid>", "shortid")
 			.option("-a, --analytics", "opt in for analytics (default: true)")
 			.option("-b, --filterbots", "opt in for filtering bots (default: false)")
-			.action(async (uri, {shortid, analytics, filterbots, key}) => {
+			.action(async (url, {shortid, analytics, filterbots, key}) => {
 				app.sub("run", async () => {
 					await app.toShortenUrl({url, shortid, analytics, filterbots, key});
 				})
