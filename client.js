@@ -18,9 +18,10 @@ class Client extends Obj {
 	set apiKey(apiKey) {
 		this._apiKey = apiKey;
 	}
-	async toShorten({url, shortid, analytics, filterbots}) {
+	async toShorten({url, shortid, analytics, filterbots, verbose}) {
 		let client = this;
 		let {apiKey: key} = client;
+		console.log({url, shortid, analytics, filterbots, key});
 		let uRL = new URL(` https://xgd.io/V1/shorten`);
 		uRL.search = new URLSearchParams({
 			url,
@@ -29,8 +30,14 @@ class Client extends Obj {
 			...(cutil.a(filterbots) ? {filterbots} : {}),
 			key,
 		});
-		let {shorturl} = await (await fetch(uRL)).json();
-		return shorturl;
+		let result = await (await fetch(uRL)).json();
+		if (result.status !== 200) {
+			throw new Error(result.message);
+		}
+		if (verbose) {
+			console.log(result);
+		}
+		return result.shorturl;
 	}
 }
 

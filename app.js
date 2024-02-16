@@ -36,6 +36,7 @@ class App extends cutil.mixin(AppBase, dumper) {
 		let app = this;
 		await app.toDefineInitOptionsDumper();
 		app.commander.option("-k, --key", "API key for x.gd");
+		app.commander.option("--set-key", "set API key for x.gd persistently");
 		app.commander.command("run");
 		app.commander.command("do")
 			.description("Shorten a URL")
@@ -43,9 +44,10 @@ class App extends cutil.mixin(AppBase, dumper) {
 			.option("-i, --shortid <shortid>", "shortid")
 			.option("-a, --analytics", "opt in for analytics (default: true)")
 			.option("-b, --filterbots", "opt in for filtering bots (default: false)")
-			.action(async (url, {shortid, analytics, filterbots, key}) => {
+			.option("-v, --verbose", "show verbose info")
+			.action(async (url, {shortid, analytics, filterbots, verbose}) => {
 				app.sub("run", async () => {
-					await app.toShortenUrl({url, shortid, analytics, filterbots, key});
+					await app.toShortenUrl({url, shortid, analytics, filterbots});
 				})
 			});
 	}
@@ -53,12 +55,20 @@ class App extends cutil.mixin(AppBase, dumper) {
 		await super.toApplyInitOptions();
 		let app = this;
 		await app.toApplyInitOptionsDumper();
+		let opts = app.commander.opts();
+		if (cutil.a(opts.key)) {
+			app.apiKey = opts.key;
+		}
+		if (cutil.a(opts.setKey)) {
+			app.prefs.apiKey = opts.setKey;
+		}
 	}
-	async toShortenUrl({url, shortid, analytics, filterbots, key}) {
+	async toShortenUrl({url, shortid, analytics, filterbots}) {
 		let app = this;
 		let {client} = app;
-		if (cutil.a(key)) {
-			client.apiKey = key;
+		let {prefs} = app;
+		if (cutil.a(prefs.key)) {
+			client.apiKey = prefs.key;
 		}
 		try {
 			let u = await client.toShorten({url, shortid, analytics, filterbots});
