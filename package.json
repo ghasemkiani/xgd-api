@@ -1,11 +1,11 @@
 {
 	"name": "@ghasemkiani/xgd-api",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "",
 	"type": "module",
 	"main": "index.js",
 	"bin": {
-		"xgd": "./bin/xgd.js"
+		"gkxgd": "./bin/gkxgd.js"
 	},
 	"scripts": {
 		"test": "node --test"

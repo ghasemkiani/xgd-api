@@ -18,7 +18,7 @@ class Client extends Obj {
 	set apiKey(apiKey) {
 		this._apiKey = apiKey;
 	}
-	toShorten({url, shortid, analytics, filterbots}) {
+	async toShorten({url, shortid, analytics, filterbots}) {
 		let client = this;
 		let {apiKey: key} = client;
 		let uRL = new URL(` https://xgd.io/V1/shorten`);
