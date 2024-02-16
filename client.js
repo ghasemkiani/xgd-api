@@ -21,7 +21,6 @@ class Client extends Obj {
 	async toShorten({url, shortid, analytics, filterbots, verbose}) {
 		let client = this;
 		let {apiKey: key} = client;
-		console.log({url, shortid, analytics, filterbots, key});
 		let uRL = new URL(` https://xgd.io/V1/shorten`);
 		uRL.search = new URLSearchParams({
 			url,
@@ -31,11 +30,11 @@ class Client extends Obj {
 			key,
 		});
 		let result = await (await fetch(uRL)).json();
-		if (result.status !== 200) {
-			throw new Error(result.message);
-		}
 		if (verbose) {
 			console.log(result);
+		}
+		if (result.status !== 200) {
+			throw new Error(result.message);
 		}
 		return result.shorturl;
 	}
