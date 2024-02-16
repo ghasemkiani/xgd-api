@@ -1,0 +1,20 @@
+{
+	"name": "@ghasemkiani/xgd-api",
+	"version": "1.0.0",
+	"description": "",
+	"type": "module",
+	"main": "index.js",
+	"bin": {
+		"xgd": "./bin/xgd.js"
+	},
+	"scripts": {
+		"test": "node --test"
+	},
+	"keywords": [],
+	"author": "Ghasem Kiani",
+	"license": "MIT",
+	"dependencies": {
+		"@ghasemkiani/base": "github:ghasemkiani/base",
+		"@ghasemkiani/base-app": "github:ghasemkiani/base-app"
+	}
+}
