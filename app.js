@@ -1,7 +1,7 @@
-import fs from "node:fs/promises";
 import process from "node:process";
 
 import { cutil } from "@ghasemkiani/base";
+import { Textual } from "@ghasemkiani/base";
 import { App as AppBase } from "@ghasemkiani/base-app";
 import { dumper } from "@ghasemkiani/base-app";
 import { infoer } from "@ghasemkiani/base-app";
@@ -124,26 +124,26 @@ class App extends cutil.mixin(AppBase, infoer, dumper, pathable, iwdbApp) {
 			});
 		app.commander
 			.command("export")
-			.description("export database to json file")
-			.argument("<file>", "path to output json file")
-			.action(async (file) => {
+			.description("export database to json fn")
+			.argument("<fn>", "path to output json fn")
+			.action(async (fn) => {
 				app.sub("run", async () => {
-					await app.toExport({ file });
+					await app.toExport({ fn });
 				});
 			});
 		app.commander
 			.command("import")
-			.description("import database from json file")
-			.argument("<file>", "path to input json file")
+			.description("import database from json fn")
+			.argument("<fn>", "path to input json fn")
 			// Adding the merge option
 			.option(
 				"-m, --merge",
-				"merge records by discarding IDs from the file",
+				"merge records by discarding IDs from the fn",
 				false,
 			)
-			.action(async (file, { merge }) => {
+			.action(async (fn, { merge }) => {
 				app.sub("run", async () => {
-					await app.toImport({ file, merge });
+					await app.toImport({ fn, merge });
 				});
 			});
 	}
@@ -342,21 +342,20 @@ class App extends cutil.mixin(AppBase, infoer, dumper, pathable, iwdbApp) {
 			process.exit(1);
 		}
 	}
-	async toExport({ file }) {
+	async toExport({ fn }) {
 		let app = this;
 		try {
 			let items = app.db.prepare("SELECT * FROM urls ORDER BY dt ASC").all();
-			await fs.writeFile(file, JSON.stringify(items, null, 2), "utf8");
-			console.log(`Successfully exported ${items.length} records to ${file}`);
+      new Textual({ fn, json: items }).write();
+			console.log(`Successfully exported ${items.length} records to ${fn}`);
 		} catch (e) {
 			console.error("Export failed:", e.message);
 		}
 	}
-  async toImport({ file, merge }) {
+  async toImport({ fn, merge }) {
     let app = this;
     try {
-      const content = await fs.readFile(file, "utf8");
-      const items = JSON.parse(content);
+      const items = new Textual({ fn }).read().json;
       
       let sql = merge 
         ? `INSERT OR IGNORE INTO urls (dt, url, u) VALUES (@dt, @url, @u)`
@@ -364,20 +363,26 @@ class App extends cutil.mixin(AppBase, infoer, dumper, pathable, iwdbApp) {
 
       const stmt = app.db.prepare(sql);
 
-      // Manual Transaction
       try {
         app.db.prepare("BEGIN TRANSACTION").run();
 
         for (const item of items) {
-          stmt.run(item);
+          if (merge) {
+            // Create a clean object without the 'id' property
+            const { dt, url, u } = item;
+            stmt.run({ dt, url, u });
+          } else {
+            // Pass the whole item as is (including id)
+            stmt.run(item);
+          }
         }
 
         app.db.prepare("COMMIT").run();
         console.log(`Import completed successfully (${items.length} records processed).`);
-      } catch (err) {
+      } catch (e) {
         // If something goes wrong, try to rollback to keep the DB clean
         app.db.prepare("ROLLBACK").run();
-        throw err;
+        throw e;
       }
       
     } catch (e) {
