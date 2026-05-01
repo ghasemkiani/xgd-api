@@ -1,3 +1,4 @@
+import fs from "node:fs/promises";
 import process from "node:process";
 
 import { cutil } from "@ghasemkiani/base";
@@ -92,9 +93,11 @@ class App extends cutil.mixin(AppBase, infoer, dumper, pathable, iwdbApp) {
 			.command("list")
 			.alias("l")
 			.description("list all urls")
-			.action(async () => {
+      .option("-o, --oldest", "sort by date oldest first")
+      .option("-n, --newest", "sort by date newest first")
+			.action(async ({ oldest, newest }) => {
 				app.sub("run", async () => {
-					await app.toList();
+					await app.toList({ oldest, newest });
 				});
 			});
 		app.commander
@@ -117,6 +120,24 @@ class App extends cutil.mixin(AppBase, infoer, dumper, pathable, iwdbApp) {
       .action(async (id) => {
         app.sub("run", async () => {
           await app.toUpdate({ id });
+        });
+      });
+    app.commander
+      .command("export")
+      .description("export database to json file")
+      .argument("<file>", "path to output json file")
+      .action(async (file) => {
+        app.sub("run", async () => {
+          await app.toExport({ file });
+        });
+      });
+    app.commander
+      .command("import")
+      .description("import database from json file")
+      .argument("<file>", "path to input json file")
+      .action(async (file) => {
+        app.sub("run", async () => {
+          await app.toImport({ file });
         });
       });
 	}
@@ -152,8 +173,12 @@ class App extends cutil.mixin(AppBase, infoer, dumper, pathable, iwdbApp) {
       id = result.lastInsertRowid;
       console.log(`db id: ${id}`);
     } catch (e) {
-      console.error("Error during operation:", e);
-      throw e;
+      if (e.message.includes("UNIQUE constraint failed")) {
+        console.warn(`The short URL "${u}" already exists in the database.`);
+      } else {
+        console.error("Error during operation:", e);
+        throw e;
+      }
     }
     return id;
   }
@@ -229,10 +254,15 @@ class App extends cutil.mixin(AppBase, infoer, dumper, pathable, iwdbApp) {
       item.url,
     ].join(" "));
   }
-  async toList() {
+  async toList({ oldest, newest }) {
     let app = this;
     try {
       let sql = "SELECT * FROM urls";
+      if (oldest) {
+        sql += " ORDER BY dt ASC";
+      } else if (newest) {
+        sql += " ORDER BY dt DESC";
+      }
       let items = app.db.prepare(sql).all();
       console.log(`Items found: ${items.length}`);
       for (let item of items) {
@@ -301,6 +331,38 @@ class App extends cutil.mixin(AppBase, infoer, dumper, pathable, iwdbApp) {
 			console.log(e.message);
 			process.exit(1);
 		}
+  }
+  async toExport({ file }) {
+    let app = this;
+    try {
+      let items = app.db.prepare("SELECT * FROM urls ORDER BY dt DESC").all();
+      await fs.writeFile(file, JSON.stringify(items, null, 2), "utf8");
+      console.log(`Successfully exported ${items.length} records to ${file}`);
+    } catch (e) {
+      console.error("Export failed:", e.message);
+    }
+  }
+  async toImport({ file }) {
+    let app = this;
+    try {
+      let content = await fs.readFile(file, "utf8");
+      let items = JSON.parse(content);
+      
+      // Using OR IGNORE in case you have the UNIQUE constraint on 'u'
+      let stmt = app.db.prepare(`
+        INSERT OR IGNORE INTO urls (id, dt, url, u) 
+        VALUES (@id, @dt, @url, @u)
+      `);
+
+      const insertMany = app.db.transaction((data) => {
+        for (const item of data) stmt.run(item);
+      });
+
+      insertMany(items);
+      console.log(`Imported records from ${file}. (Duplicates skipped)`);
+    } catch (e) {
+      console.error("Import failed:", e.message);
+    }
   }
 }
 
