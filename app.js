@@ -67,6 +67,36 @@ class App extends cutil.mixin(AppBase, infoer, dumper, pathable, iwdbApp) {
 				});
 			});
 		app.commander
+			.command("add")
+			.alias("a")
+			.description("add a url and u to db")
+			.option("-u, --u <u>", "item u")
+			.option("-U, --url <url>", "item url")
+			.action(async ({ u, url }) => {
+				app.sub("run", async () => {
+					await app.toAdd({ u, url });
+				});
+			});
+		app.commander
+			.command("delete")
+			.alias("d")
+			.description("delete a url from db")
+			.argument("<id>", "item id")
+			.action(async (id) => {
+				app.sub("run", async () => {
+					await app.toDelete({ id });
+				});
+			});
+		app.commander
+			.command("list")
+			.alias("l")
+			.description("list all urls")
+			.action(async () => {
+				app.sub("run", async () => {
+					await app.toList();
+				});
+			});
+		app.commander
 			.command("search")
 			.alias("s")
 			.description("search for urls")
@@ -99,18 +129,43 @@ class App extends cutil.mixin(AppBase, infoer, dumper, pathable, iwdbApp) {
 	}
   async toAddToDb({ url, u }) {
     let app = this;
+    let id;
     try {
       let stmt = app.db.prepare(`
         INSERT INTO urls (url, u) 
         VALUES (?, ?)
       `);
       let result = stmt.run(url, u);
-      let id = result.lastInsertRowid;
+      id = result.lastInsertRowid;
       console.log(`db id: ${id}`);
     } catch (e) {
       console.error("Error during operation:", e);
       throw e;
     }
+    return id;
+  }
+  async toDeleteFromDb({ id }) {
+    let app = this;
+    let n = 0;
+    try {
+      let stmt = app.db.prepare(`
+        DELETE FROM urls 
+        WHERE id = ?
+      `);
+      
+      let result = stmt.run(id);
+      n = result.changes;
+      
+      if (n > 0) {
+        console.log(`Successfully deleted record with id: ${id}`);
+      } else {
+        console.log(`No record found with id: ${id}`);
+      }
+    } catch (e) {
+      console.error("Error during delete operation:", e);
+      throw e;
+    }
+    return n;
   }
 	async toShortenUrl({ url, shortid, analytics, filterbots, verbose }) {
 		let app = this;
@@ -134,20 +189,61 @@ class App extends cutil.mixin(AppBase, infoer, dumper, pathable, iwdbApp) {
 			process.exit(1);
 		}
 	}
+  async toAdd({ u, url }) {
+    let app = this;
+    try {
+      await toAddToDb({ url, u });
+    } catch (e) {
+      console.log(e.message);
+      process.exit(1);
+    }
+  }
+  async toDelete({ id }) {
+    let app = this;
+    try {
+      await toDeleteFromDb({ id });
+    } catch (e) {
+      console.log(e.message);
+      process.exit(1);
+    }
+  }
+  display(item) {
+    let app = this;
+    console.log([
+      cutil.asString(item.id).padStart(7),
+      cutil.df(new Date(item.dt + "Z")).padStart(23),
+      cutil.asString(item.u).padEnd(31),
+      item.url,
+    ].join(" "));
+  }
   async toSearch({ query }) {
     let app = this;
-    let sql = "SELECT * FROM urls WHERE url LIKE ? OR u LIKE ?";
-    query = `%${query}%`;
-    let items = app.db.prepare(sql).all(query, query);
-    console.log(`Items found: ${items.length}`);
-    for (let item of items) {
-      console.log([
-        cutil.asString(item.id).padStart(7),
-        cutil.df(new Date(item.dt + "Z")).padStart(23),
-        cutil.asString(item.u).padEnd(31),
-        item.url,
-      ].join(" "));
-    }
+    try {
+      let sql = "SELECT * FROM urls WHERE url LIKE ? OR u LIKE ?";
+      query = `%${query}%`;
+      let items = app.db.prepare(sql).all(query, query);
+      console.log(`Items found: ${items.length}`);
+      for (let item of items) {
+        app.display(item);
+      }
+    } catch (e) {
+			console.log(e.message);
+			process.exit(1);
+		}
+  }
+  async toList() {
+    let app = this;
+    try {
+      let sql = "SELECT * FROM urls";
+      let items = app.db.prepare(sql).all();
+      console.log(`Items found: ${items.length}`);
+      for (let item of items) {
+        app.display(item);
+      }
+    } catch (e) {
+			console.log(e.message);
+			process.exit(1);
+		}
   }
 }
 
