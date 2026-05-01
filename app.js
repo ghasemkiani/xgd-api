@@ -346,49 +346,48 @@ class App extends cutil.mixin(AppBase, infoer, dumper, pathable, iwdbApp) {
 		let app = this;
 		try {
 			let items = app.db.prepare("SELECT * FROM urls ORDER BY dt ASC").all();
-      new Textual({ fn, json: items }).write();
+			new Textual({ fn, json: items }).write();
 			console.log(`Successfully exported ${items.length} records to ${fn}`);
 		} catch (e) {
 			console.error("Export failed:", e.message);
 		}
 	}
-  async toImport({ fn, merge }) {
-    let app = this;
-    try {
-      const items = new Textual({ fn }).read().json;
-      
-      let sql = merge 
-        ? `INSERT OR IGNORE INTO urls (dt, url, u) VALUES (@dt, @url, @u)`
-        : `INSERT OR IGNORE INTO urls (id, dt, url, u) VALUES (@id, @dt, @url, @u)`;
+	async toImport({ fn, merge }) {
+		let app = this;
+		try {
+			const items = new Textual({ fn }).read().json;
 
-      const stmt = app.db.prepare(sql);
+			let sql = merge
+				? `INSERT OR IGNORE INTO urls (dt, url, u) VALUES (@dt, @url, @u)`
+				: `INSERT OR IGNORE INTO urls (id, dt, url, u) VALUES (@id, @dt, @url, @u)`;
 
-      try {
-        app.db.prepare("BEGIN TRANSACTION").run();
+			const stmt = app.db.prepare(sql);
 
-        for (const item of items) {
-          if (merge) {
-            // Create a clean object without the 'id' property
-            const { dt, url, u } = item;
-            stmt.run({ dt, url, u });
-          } else {
-            // Pass the whole item as is (including id)
-            stmt.run(item);
-          }
-        }
+			try {
+				app.db.prepare("BEGIN TRANSACTION").run();
 
-        app.db.prepare("COMMIT").run();
-        console.log(`Import completed successfully (${items.length} records processed).`);
-      } catch (e) {
-        // If something goes wrong, try to rollback to keep the DB clean
-        app.db.prepare("ROLLBACK").run();
-        throw e;
-      }
-      
-    } catch (e) {
-      console.error("Import failed:", e.message);
-    }
-  }
+				for (const item of items) {
+					if (merge) {
+						// Create a clean object without the 'id' property
+						const { dt, url, u } = item;
+						stmt.run({ dt, url, u });
+					} else {
+						// Pass the whole item as is (including id)
+						stmt.run(item);
+					}
+				}
+
+				app.db.prepare("COMMIT").run();
+				console.log(`Import completed successfully (${items.length} records processed).`);
+			} catch (e) {
+				// If something goes wrong, try to rollback to keep the DB clean
+				app.db.prepare("ROLLBACK").run();
+				throw e;
+			}
+		} catch (e) {
+			console.error("Import failed:", e.message);
+		}
+	}
 }
 
 export { App };
