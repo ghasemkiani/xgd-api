@@ -1,6 +1,6 @@
 {
   "name": "@ghasemkiani/xgd-api",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "",
   "type": "module",
   "main": "index.js",
@@ -16,6 +16,7 @@
   "dependencies": {
     "@ghasemkiani/base": "github:ghasemkiani/base",
     "@ghasemkiani/base-app": "github:ghasemkiani/base-app",
+    "@ghasemkiani/io": "github:ghasemkiani/io",
     "@ghasemkiani/sqlite": "github:ghasemkiani/sqlite"
   }
 }

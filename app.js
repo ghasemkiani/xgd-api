@@ -6,6 +6,7 @@ import { dumper } from "@ghasemkiani/base-app";
 import { infoer } from "@ghasemkiani/base-app";
 import { pathable } from "@ghasemkiani/base-app";
 import { iwdbApp } from "@ghasemkiani/sqlite";
+import { Inputter } from "@ghasemkiani/io";
 
 import { Client } from "./client.js";
 
@@ -106,6 +107,18 @@ class App extends cutil.mixin(AppBase, infoer, dumper, pathable, iwdbApp) {
 					await app.toSearch({ query });
 				});
 			});
+    app.commander
+      .command("update")
+      .alias("edit")
+      .alias("u")
+      .alias("e")
+      .description("edit and update an item from db")
+      .argument("<id>", "item id")
+      .action(async (id) => {
+        app.sub("run", async () => {
+          await app.toUpdate({ id });
+        });
+      });
 	}
 	async toApplyInitOptions() {
 		await super.toApplyInitOptions();
@@ -216,6 +229,20 @@ class App extends cutil.mixin(AppBase, infoer, dumper, pathable, iwdbApp) {
       item.url,
     ].join(" "));
   }
+  async toList() {
+    let app = this;
+    try {
+      let sql = "SELECT * FROM urls";
+      let items = app.db.prepare(sql).all();
+      console.log(`Items found: ${items.length}`);
+      for (let item of items) {
+        app.display(item);
+      }
+    } catch (e) {
+      console.log(e.message);
+      process.exit(1);
+    }
+  }
   async toSearch({ query }) {
     let app = this;
     try {
@@ -231,14 +258,44 @@ class App extends cutil.mixin(AppBase, infoer, dumper, pathable, iwdbApp) {
 			process.exit(1);
 		}
   }
-  async toList() {
+  async toUpdate({ id }) {
     let app = this;
     try {
-      let sql = "SELECT * FROM urls";
-      let items = app.db.prepare(sql).all();
-      console.log(`Items found: ${items.length}`);
-      for (let item of items) {
+      let item = app.db.prepare("SELECT * FROM urls WHERE id = ?").get(id);
+      
+      if (cutil.a(item)) {
         app.display(item);
+        let { dt, url, u } = item;
+        let s;
+
+        if ((s = await Inputter.toInput(`dt (${cutil.df(new Date(item.dt + "Z"))})?`))) {
+          dt = new Date(dt).toISOString().replace("T", " ").slice(0, 19);
+        }
+
+        if ((s = await Inputter.toInput(`url (${url})?`))) {
+          url = s;
+        }
+
+        if ((s = await Inputter.toInput(`u (${u})?`))) {
+          u = s;
+        }
+
+        app.display({ id, dt, url, u });
+
+        try {
+          app.db.prepare(`
+            UPDATE urls 
+            SET dt = ?, url = ?, u = ? 
+            WHERE id = ?
+          `).run(dt, url, u, id);
+          
+          console.log(`Record ${id} updated successfully.`);
+        } catch (e) {
+          console.error("Failed to update record.");
+          throw e;
+        }
+      } else {
+        console.log(`Record with id ${id} not found.`);
       }
     } catch (e) {
 			console.log(e.message);
