@@ -1,3 +1,4 @@
 import {App} from "./app.js";
 
-await new App().toStart();
+let app = new App({ urlBase: import.meta.url });
+await app.toStart();
