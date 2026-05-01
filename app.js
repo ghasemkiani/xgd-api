@@ -205,7 +205,7 @@ class App extends cutil.mixin(AppBase, infoer, dumper, pathable, iwdbApp) {
   async toAdd({ u, url }) {
     let app = this;
     try {
-      await toAddToDb({ url, u });
+      await app.toAddToDb({ url, u });
     } catch (e) {
       console.log(e.message);
       process.exit(1);
@@ -269,7 +269,7 @@ class App extends cutil.mixin(AppBase, infoer, dumper, pathable, iwdbApp) {
         let s;
 
         if ((s = await Inputter.toInput(`dt (${cutil.df(new Date(item.dt + "Z"))})?`))) {
-          dt = new Date(dt).toISOString().replace("T", " ").slice(0, 19);
+          dt = new Date(s).toISOString().replace("T", " ").slice(0, 19);
         }
 
         if ((s = await Inputter.toInput(`url (${url})?`))) {
